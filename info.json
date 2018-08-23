@@ -16,6 +16,5 @@
     "switch_based_on_energy": false,
     "switch_min_energy": 20,
     "switch_to_stars": 1,
-    "refresh_before_switch": true,
-    "headless": false
+    "refresh_before_switch": true
 }

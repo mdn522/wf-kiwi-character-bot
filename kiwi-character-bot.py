@@ -177,20 +177,27 @@ options = webdriver.ChromeOptions()
 cap = DesiredCapabilities.CHROME
 # cap["pageLoadStrategy"] = "none"
 
-# Todo: test in headless mode
-if headless:
-    options.add_argument("--headless")
+# Headless mode does not work
+# if headless:
+#     options.add_argument("--headless")
+#     options.add_argument("--no-sandbox")
+#     options.add_argument("--allow-running-insecure-content")
+#     options.add_argument('--ignore-certificate-errors')
+#     options.add_argument('--disable-web-security')
+#     options.add_argument('--disable-gpu')
+
+#     cap['acceptSslCerts'] = True
+#     cap['acceptInsecureCerts'] = True
 
 options.add_argument('log-level=3')
-options.add_argument("user-data-dir=chrome_profile")
 options.add_argument("--start-maximized")
+options.add_argument("user-data-dir=chrome_profile")
 driver = webdriver.Chrome(chrome_options=options, desired_capabilities=cap)
 
 driver.get('https://wf.my.com/kiwi')
 
 
-if not headless:
-    input('''Do these steps
+input('''Do these steps
 (1) Login in to your my.com account
 (2) Open KIWI page
 (3) Open desired character task
@@ -198,10 +205,16 @@ if not headless:
 (5) Press enter
 ''')
 
-if headless and not driver.find_elements_by_class_name('userinfo'):
-    print('Please disable headless in info.json and login to your account then enable headless again')
-    print('Exiting...')
-    sys.exit(0)
+# if headless:
+#     try:
+#         WebDriverWait(driver, 10).until(
+#             EC.presence_of_element_located((By.CLASS_NAME, 'userinfo'))
+#         )
+#     except Exception as e:
+#         print(e)
+#         print('Please disable headless in info.json and login to your account then enable headless again')
+#         print('Exiting...')
+#         sys.exit(0)
 
 print('Bot Started...')
 
