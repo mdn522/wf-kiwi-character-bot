@@ -1,0 +1,21 @@
+{
+    "mission_file": "shark",
+    "task_name": "sword",
+    "stars": 1,
+    "can_send": true,
+    "refill": true,
+    "refill_min_bp": 200,
+    "refill_min_energy": 2,
+    "refill_drain": true,
+    "refill_drain_map": [3, 1],
+    "energy_usages": [3, 7, 10],
+    "energy_shortage_exit": false,
+    "energy_shortage_wait": 600,
+    "refresh_min_time": 600,
+    "log_to_file": true,
+    "switch_based_on_energy": false,
+    "switch_min_energy": 20,
+    "switch_to_stars": 1,
+    "refresh_before_switch": true,
+    "headless": false
+}
