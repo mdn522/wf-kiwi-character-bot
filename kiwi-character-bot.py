@@ -1,7 +1,7 @@
 __developer__ = "mdn522"
 __copyright__ = "Copyright 2018"
 __license__ = "GPL"
-__version__ = "1.4"
+__version__ = "1.5"
 __maintainer__ = "mdn522"
 __status__ = "beta"
 
@@ -14,6 +14,7 @@ import pause
 import logging
 import winsound
 import sys
+import pickle
 
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
@@ -27,7 +28,10 @@ print('K.I.W.I Character Automator Bot')
 print('Developed by: Abdullah Mallik (@mdn522)')
 
 debug = True
+error = True
 info = True
+# Please ffs don't make it true. i'm not done with this feature
+hide_browser = False
 
 
 class UnhandledElseClause(Exception):
@@ -42,11 +46,12 @@ def reload_vars():
         # Load vars from info.json
         with open('info.json') as fp:
             obj = json.load(fp)
-            for k, v in obj.items():
-                globals()[k] = v
+            globals().update(obj)
+            # for k, v in obj.items():
+            #     globals()[k] = v
 
     except Exception as e:
-        print(e)
+        not error or print(e)
         return False
 
     return True
@@ -64,6 +69,10 @@ def refresh_kiwi(force=False):
         time.sleep(1)
         reload_ebp()
         last_time_refreshed = int(datetime.now().timestamp())
+
+
+def update_login_cookie(check=True, prompt_user=False):
+    login_driver = ""
 
 
 def get_task_window(mission_file, task_name, check=False):
@@ -104,6 +113,8 @@ def get_task_window(mission_file, task_name, check=False):
     WebDriverWait(driver.find_element_by_class_name('tasks'), 10).until(
         EC.presence_of_element_located((By.XPATH, "//*[contains(text(), '{}')]".format(task_name.title())))
     ).click()
+
+    time.sleep(0.1)
     
     task_window = _get_active_task_window() 
     
@@ -168,7 +179,7 @@ def refill_energy():
 
         webdriver.ActionChains(driver).release(energy_purchase).perform()
     except Exception as e:
-        print(e)
+        not error or print(e)
 
 
 reload_vars()
@@ -178,43 +189,42 @@ cap = DesiredCapabilities.CHROME
 # cap["pageLoadStrategy"] = "none"
 
 # Headless mode does not work
-# if headless:
-#     options.add_argument("--headless")
-#     options.add_argument("--no-sandbox")
-#     options.add_argument("--allow-running-insecure-content")
-#     options.add_argument('--ignore-certificate-errors')
-#     options.add_argument('--disable-web-security')
-#     options.add_argument('--disable-gpu')
+if hide_browser:
+    options.add_argument("--headless")
+    options.add_argument("user-data-dir=headless_chrome_profile")
 
-#     cap['acceptSslCerts'] = True
-#     cap['acceptInsecureCerts'] = True
+    cap['acceptSslCerts'] = True
+    cap['acceptInsecureCerts'] = True
+else:
+    options.add_argument("user-data-dir=chrome_profile")
 
 options.add_argument('log-level=3')
 options.add_argument("--start-maximized")
-options.add_argument("user-data-dir=chrome_profile")
+
 driver = webdriver.Chrome(chrome_options=options, desired_capabilities=cap)
 
 driver.get('https://wf.my.com/kiwi')
 
-
-input('''Do these steps
+if not hide_browser:
+    input('''Do these steps
 (1) Login in to your my.com account
 (2) Open KIWI page
 (3) Open desired character task
 (4) Start the character task (if not already)
 (5) Press enter
 ''')
+else:
+    cookies = pickle.load(open("cookies.pkl", "rb"))
+    for cookie in cookies:
+        driver.add_cookie(cookie)
 
-# if headless:
-#     try:
-#         WebDriverWait(driver, 10).until(
-#             EC.presence_of_element_located((By.CLASS_NAME, 'userinfo'))
-#         )
-#     except Exception as e:
-#         print(e)
-#         print('Please disable headless in info.json and login to your account then enable headless again')
-#         print('Exiting...')
-#         sys.exit(0)
+    driver.get('https://wf.my.com/kiwi')
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, 'userinfo'))
+        )
+    except Exception as e:
+        update_login_cookie(check=True, prompt_user=True)
 
 print('Bot Started...')
 
@@ -227,11 +237,21 @@ energy = int(WebDriverWait(driver, 10).until(
 bp = int(driver.find_element_by_css_selector('.points > .value').text)
 
 
+if not hide_browser:
+    not info or print('Saving cookies for headless session')
+    pickle.dump(driver.get_cookies() , open("cookies.pkl", "wb"))
+
+
 last_time_refreshed = int(datetime.now().timestamp())
 
 exc_on_streak = False
 exc_count = 0
 exc_refresh_after = 5
+
+# Update mission file and task name
+# try:
+#     mission_file, task_name = get_active_mission_file(driver), get_active_task_name(task_window)
+# except: pass
 
 while True:
     reload_vars()
@@ -244,9 +264,6 @@ while True:
         reload_ebp()
 		
         task_window = get_task_window(mission_file, task_name)
-
-        # Update mission file and task name
-        mission_file, task_name = get_active_mission_file(driver), get_active_task_name(task_window)
 
         if task_window.find_elements_by_class_name('timer__text'):  # Task in progress
             time_remaining = tr = task_window.find_element_by_class_name('timer__text').text
@@ -293,7 +310,7 @@ while True:
                 energy_usage = energy_usages[stars - 1]
                 if energy < energy_usage:  # energy shortage
                     refresh_kiwi()
-                    task_window = get_task_window(mission_file, task_name)
+                    task_window = get_task_window(mission_file, task_name, check=True)
 
                     if energy < energy_usage:  # still energy shortage
                         print('Still energy shortage after refreshing', energy)
@@ -306,9 +323,9 @@ while True:
                                 print('Refilling energy')
                                 refill_energy()
 
-                                task_window = get_task_window(mission_file, task_name)
+                                task_window = get_task_window(mission_file, task_name, check=True)
                             else:
-                                print('Waiting for energy')
+                                print('Waiting for {} second(s) for energy'.format(energy_shortage_wait))
                                 pause.seconds(energy_shortage_wait)
                                 continue
 
@@ -342,8 +359,7 @@ while True:
         exc_count += 1
         exc_on_streak = True
     except Exception as e:
-        if debug:
-            print(e)
+        not error or print(e)
             
         logging.exception("Exception!")
 
