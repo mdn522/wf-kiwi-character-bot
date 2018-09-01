@@ -2,3 +2,4 @@ chrome_profile/
 logs.txt
 bot-debug.txt
 cookies.pkl
+headless_chrome_profile/

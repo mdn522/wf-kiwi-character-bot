@@ -1,7 +1,7 @@
 __developer__ = "mdn522"
 __copyright__ = "Copyright 2018"
 __license__ = "GPL"
-__version__ = "1.5"
+__version__ = "1.7"
 __maintainer__ = "mdn522"
 __status__ = "beta"
 
@@ -70,9 +70,36 @@ def refresh_kiwi(force=False):
         reload_ebp()
         last_time_refreshed = int(datetime.now().timestamp())
 
+    
+def save_cookies(driver, filename):
+    pickle.dump(driver.get_cookies() , open(filename, "wb"))
 
-def update_login_cookie(check=True, prompt_user=False):
-    login_driver = ""
+
+def load_cookies(driver, filename):
+    cookies = pickle.load(open(filename, "rb"))
+    for cookie in cookies:
+        driver.add_cookie(cookie)
+
+
+def promp_user_to_login():
+    options = webdriver.ChromeOptions()
+    cap = DesiredCapabilities.CHROME
+
+    options.add_argument("user-data-dir=chrome_profile")
+
+    options.add_argument('log-level=3')
+    options.add_argument("--start-maximized")
+
+    login_driver = webdriver.Chrome(chrome_options=options, desired_capabilities=cap)
+
+    login_driver.get('https://wf.my.com/')
+
+    print('Looks like you are not logged in or logged out.')
+    input('Please login and hit enter\n')
+
+    save_cookies(login_driver, 'cookies.pkl')
+
+    login_driver.quit()
 
 
 def get_task_window(mission_file, task_name, check=False):
@@ -95,23 +122,23 @@ def get_task_window(mission_file, task_name, check=False):
     
     # Click File Icon
     # driver.find_element_by_css_selector('.map__point.squares.corner_big.white.point-{}'.format(mission_file)).click()
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, '.map__point.squares.corner_big.white.point-{}'.format(mission_file)))
+    WebDriverWait(driver, 15).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, '.map__point.squares.corner_big.white.point-{}'.format(mission_file)))
     ).click()
 
     time.sleep(0.5)
     
     # Click Start Button
     # driver.find_element_by_css_selector('.map__point.squares.corner_big.white.point-{} .map__point__options > .button.button--white'.format(mission_file)).click()
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, '.map__point.squares.corner_big.white.point-{} .map__point__options > .button.button--white'.format(mission_file)))
+    WebDriverWait(driver, 15).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, '.map__point.squares.corner_big.white.point-{} .map__point__options > .button.button--white'.format(mission_file)))
     ).click()
 
     time.sleep(2)
     
     # Click Task Button
-    WebDriverWait(driver.find_element_by_class_name('tasks'), 10).until(
-        EC.presence_of_element_located((By.XPATH, "//*[contains(text(), '{}')]".format(task_name.title())))
+    WebDriverWait(driver.find_element_by_class_name('tasks'), 15).until(
+        EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), '{}')]".format(task_name.title())))
     ).click()
 
     time.sleep(0.1)
@@ -214,19 +241,18 @@ if not hide_browser:
 (5) Press enter
 ''')
 else:
-    cookies = pickle.load(open("cookies.pkl", "rb"))
-    for cookie in cookies:
-        driver.add_cookie(cookie)
+    logged_in = False
 
-    driver.get('https://wf.my.com/kiwi')
-    try:
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, 'userinfo'))
-        )
-    except Exception as e:
-        update_login_cookie(check=True, prompt_user=True)
-
-print('Bot Started...')
+    while not logged_in:
+        try:
+            load_cookies(driver, 'cookies.pkl')
+            driver.get('https://wf.my.com/kiwi')
+            WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.CLASS_NAME, 'userinfo'))
+            )
+            logged_in = True
+        except Exception as e:
+            promp_user_to_login()
 
 # Fuck you
 p1234 = True
@@ -239,7 +265,7 @@ bp = int(driver.find_element_by_css_selector('.points > .value').text)
 
 if not hide_browser:
     not info or print('Saving cookies for headless session')
-    pickle.dump(driver.get_cookies() , open("cookies.pkl", "wb"))
+    save_cookies(driver, 'cookie.pkl')
 
 
 last_time_refreshed = int(datetime.now().timestamp())
@@ -253,8 +279,11 @@ exc_refresh_after = 5
 #     mission_file, task_name = get_active_mission_file(driver), get_active_task_name(task_window)
 # except: pass
 
+print('Bot Started...')
+
 while True:
     reload_vars()
+
     try:
         if exc_on_streak and exc_count >= exc_refresh_after:
             exc_count = 0
@@ -274,7 +303,7 @@ while True:
             pause.seconds(time_remaining + 10)
 
         elif task_window.find_elements_by_class_name('avatar__reward'):  # Task finished
-            log_prefix = "{:10} -> {:10} {} -> ".format(get_active_mission_file(driver).title(), get_active_task_name(task_window).upper(), '(' + get_active_stars(task_window) * '★' + ')')
+            log_prefix = "{:10} -> {:10} {} -> ".format(get_active_mission_file(driver).title(), get_active_task_name(task_window).upper(), '(' + (get_active_stars(task_window) * '★') + ')')
             task_reward = task_window.find_element_by_class_name('avatar__reward')
 
             if task_reward.find_elements_by_class_name('failed'):  # Task failed
@@ -289,23 +318,35 @@ while True:
 
             # Click close button
             # task_reward.find_element_by_css_selector('.button.button--white').click()
-            WebDriverWait(task_reward, 15).until(
+            WebDriverWait(task_reward, 30).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, '.button.button--white'))
             ).click()
 
         elif task_window.find_elements_by_css_selector('div.bottom > div.button_container > div.button.button--white'):  # Free state
-            task_window = get_task_window(mission_file, task_name, check=True)
-            
             if can_send:  # and (send_until_energy and energy > send_until_energy):
                 current_stars = stars
 
-                if switch_based_on_energy and energy <= switch_min_energy and not stars == switch_to_stars:
+                switched = False
+                if switch_based_on_energy and energy <= switch_min_energy and (not stars == switch_to_stars or (switch_to_task_name and not task_name == switch_to_task_name)):
                     if refresh_before_switch:
                         refresh_kiwi()
 
                     if energy <= switch_min_energy:
-                        current_stars = switch_to_stars
-                        print('Switched to %d star' % (current_stars,))
+                        switch_log = (
+                            mission_file == switch_to_mission_file,
+                            task_name == switch_to_task_name,
+                            current_stars == switch_to_stars,
+                        )
+
+                        current_stars = switch_to_stars or stars
+                        mission_file = switch_to_mission_file or mission_file
+                        task_name = switch_to_task_name or task_name
+
+                        switched = True
+
+                        print('Switched task to {:11} -> {:11} {} because current energy is less than {}'.format(mission_file + '*' if switch_log[0] else '', task_name + '*' if switch_log[1] else '', '(' + current_stars * '★' + ')' + '*' if switch_log[2] else '', switch_min_energy + 1))
+
+                task_window = get_task_window(mission_file, task_name, check=True)
 
                 energy_usage = energy_usages[stars - 1]
                 if energy < energy_usage:  # energy shortage
@@ -313,7 +354,7 @@ while True:
                     task_window = get_task_window(mission_file, task_name, check=True)
 
                     if energy < energy_usage:  # still energy shortage
-                        print('Still energy shortage after refreshing', energy)
+                        print('Still energy shortage after refreshing (%s energy)' % (energy,))
                         if refill:
                             refill_drain_star_map = [i for i in refill_drain_map if energy_usages[i - 1] <= energy]
                             if refill_drain and refill_drain_star_map:  # Drain energy

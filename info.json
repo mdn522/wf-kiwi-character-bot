@@ -16,5 +16,8 @@
     "switch_based_on_energy": false,
     "switch_min_energy": 20,
     "switch_to_stars": 1,
-    "refresh_before_switch": true
+    "switch_to_mission_file": "",
+    "switch_to_task_name": "",
+    "refresh_before_switch": true,
+    "hide_browser": false
 }
