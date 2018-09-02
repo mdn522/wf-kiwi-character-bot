@@ -1,7 +1,7 @@
-__developer__ = "mdn522"
+__author__ = "mdn522"
 __copyright__ = "Copyright 2018"
 __license__ = "GPL"
-__version__ = "1.7"
+__version__ = "1.7.1"
 __maintainer__ = "mdn522"
 __status__ = "beta"
 
@@ -11,10 +11,12 @@ import re
 import time
 from datetime import datetime
 import pause
-import logging
-import winsound
 import sys
 import pickle
+import signal
+
+import logging
+import winsound
 
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
@@ -30,15 +32,12 @@ print('Developed by: Abdullah Mallik (@mdn522)')
 debug = True
 error = True
 info = True
-# Please ffs don't make it true. i'm not done with this feature
-hide_browser = False
-
 
 class UnhandledElseClause(Exception):
     pass
 
 
-logging.basicConfig(level=logging.DEBUG, filename='bot-debug.txt')
+logging.basicConfig(level=logging.DEBUG, filename='debug.log')
 
 
 def reload_vars():
@@ -52,9 +51,6 @@ def reload_vars():
 
     except Exception as e:
         not error or print(e)
-        return False
-
-    return True
 
 
 def refresh_kiwi(force=False):
@@ -215,7 +211,6 @@ options = webdriver.ChromeOptions()
 cap = DesiredCapabilities.CHROME
 # cap["pageLoadStrategy"] = "none"
 
-# Headless mode does not work
 if hide_browser:
     options.add_argument("--headless")
     options.add_argument("user-data-dir=headless_chrome_profile")
@@ -254,9 +249,6 @@ else:
         except Exception as e:
             promp_user_to_login()
 
-# Fuck you
-p1234 = True
-
 energy = int(WebDriverWait(driver, 10).until(
     EC.presence_of_element_located((By.CSS_SELECTOR, '.energy > .value'))
 ).text.strip('%'))
@@ -274,11 +266,6 @@ exc_on_streak = False
 exc_count = 0
 exc_refresh_after = 5
 
-# Update mission file and task name
-# try:
-#     mission_file, task_name = get_active_mission_file(driver), get_active_task_name(task_window)
-# except: pass
-
 print('Bot Started...')
 
 while True:
@@ -291,7 +278,7 @@ while True:
             refresh_kiwi(True)
 
         reload_ebp()
-		
+
         task_window = get_task_window(mission_file, task_name)
 
         if task_window.find_elements_by_class_name('timer__text'):  # Task in progress
