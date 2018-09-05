@@ -386,7 +386,7 @@ while True:
 
                 task_window = get_task_window(mission_file, task_name, check=True)
 
-                energy_usage = energy_usages[stars - 1]
+                energy_usage = energy_usages[current_stars - 1]
                 if energy < energy_usage:  # energy shortage
                     refresh_kiwi()
                     task_window = get_task_window(mission_file, task_name, check=True)
