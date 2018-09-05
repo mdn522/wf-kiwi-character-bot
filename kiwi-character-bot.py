@@ -1,7 +1,7 @@
 __author__ = "mdn522"
 __copyright__ = "Copyright 2018"
 __license__ = "GPL"
-__version__ = "1.7.1"
+__version__ = "1.7.6"
 __maintainer__ = "mdn522"
 __status__ = "beta"
 
@@ -32,6 +32,31 @@ print('Developed by: Abdullah Mallik (@mdn522)')
 debug = True
 error = True
 info = True
+
+# VARS
+# Set value in info.json
+mission_file = None
+task_name = None
+stars = None
+energy_usages = None
+can_send = None
+refill = None
+refill_min_bp = None
+refill_min_energy = None
+refill_drain = None
+refill_drain_map = None
+switch_based_on_energy = None
+switch_min_energy = None
+switch_to_stars = None
+switch_to_mission_file = None
+switch_to_task_name = None
+refresh_before_switch = None
+energy_shortage_exit = None
+energy_shortage_wait = None
+refresh_min_time = None
+log_to_file = None
+hide_browser = None
+
 
 class UnhandledElseClause(Exception):
     pass
@@ -256,7 +281,7 @@ bp = int(driver.find_element_by_css_selector('.points > .value').text)
 
 
 if not hide_browser:
-    not info or print('Saving cookies for headless session')
+    not info or print('Saving cookies for headless session.')
     save_cookies(driver, 'cookie.pkl')
 
 
@@ -320,7 +345,7 @@ while True:
 
                     if energy <= switch_min_energy:
                         switch_log = (
-                            mission_file == switch_to_mission_file,
+                            (mission_file == switch_to_mission_file) if mission_file else True,
                             task_name == switch_to_task_name,
                             current_stars == switch_to_stars,
                         )
@@ -331,7 +356,11 @@ while True:
 
                         switched = True
 
-                        print('Switched task to {:11} -> {:11} {} because current energy is less than {}'.format(mission_file + '*' if switch_log[0] else '', task_name + '*' if switch_log[1] else '', '(' + current_stars * '★' + ')' + '*' if switch_log[2] else '', switch_min_energy + 1))
+                        print('Switched task to {:11} -> {:11} {} because current energy is less than {}'.format(
+                            mission_file.title() + ('*' if not switch_log[0] else ''),
+                            task_name.upper() + ('*' if not switch_log[1] else ''), 
+                            '(' + current_stars * '★' + ')' + ('*' if switch_log[2] else ''), 
+                            switch_min_energy + 1))
 
                 task_window = get_task_window(mission_file, task_name, check=True)
 
@@ -350,8 +379,10 @@ while True:
                             elif refill_min_energy >= energy and bp >= max(50, refill_min_bp):  # Refill
                                 print('Refilling energy')
                                 refill_energy()
+                                last_time_refreshed = int(datetime.now().timestamp())
+                                continue
 
-                                task_window = get_task_window(mission_file, task_name, check=True)
+                                # task_window = get_task_window(mission_file, task_name, check=True)
                             else:
                                 print('Waiting for {} second(s) for energy'.format(energy_shortage_wait))
                                 pause.seconds(energy_shortage_wait)
