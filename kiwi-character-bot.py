@@ -139,7 +139,7 @@ def get_task_window(mission_file, task_name, check=False):
     # Send esc
     webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
     
-    time.sleep(0.1)
+    # time.sleep(0.1)
     
     # Click File Icon
     # driver.find_element_by_css_selector('.map__point.squares.corner_big.white.point-{}'.format(mission_file)).click()
@@ -147,7 +147,7 @@ def get_task_window(mission_file, task_name, check=False):
         EC.element_to_be_clickable((By.CSS_SELECTOR, '.map__point.squares.corner_big.white.point-{}'.format(mission_file)))
     ).click()
 
-    time.sleep(0.5)
+    # time.sleep(0.5)
     
     # Click Start Button
     # driver.find_element_by_css_selector('.map__point.squares.corner_big.white.point-{} .map__point__options > .button.button--white'.format(mission_file)).click()
@@ -155,7 +155,7 @@ def get_task_window(mission_file, task_name, check=False):
         EC.element_to_be_clickable((By.CSS_SELECTOR, '.map__point.squares.corner_big.white.point-{} .map__point__options > .button.button--white'.format(mission_file)))
     ).click()
 
-    time.sleep(2)
+    # time.sleep(2)
     
     # Click Task Button
     WebDriverWait(driver.find_element_by_class_name('tasks'), 15).until(
@@ -189,7 +189,7 @@ def get_active_task_name(task_window):
     return task_window.find_element_by_css_selector('.tasks__info__top.avatar > h4').get_attribute('innerHTML').lower()
 
 
-def get_active_stars(task_window):
+def get_active_stars(task_window, text=""):
     global stars
     current_stars = stars
     stars_io = ['active' in el.get_attribute('class') for el in task_window.find_elements_by_css_selector('.stars_container > .stars_list')]
@@ -197,6 +197,16 @@ def get_active_stars(task_window):
         if stars_io[i]:
             current_stars = i + 1
             break
+    else:
+        if '1h.' in text:
+            current_stars = 1
+        elif '3h.' in text:
+            current_stars = 2
+        elif '5h.' in text:
+            current_stars = 3
+        else:
+            global last_time_stars
+            current_stars = last_time_stars 
     return current_stars
 
 
@@ -290,6 +300,7 @@ last_time_refreshed = int(datetime.now().timestamp())
 exc_on_streak = False
 exc_count = 0
 exc_refresh_after = 5
+last_time_stars = stars
 
 print('Bot Started...')
 
@@ -312,21 +323,30 @@ while True:
                 time_remaining = int(tr.split(':')[0]) * 3600 + int(tr.split(':')[1]) * 60
             else:  # s
                 time_remaining = int(time_remaining)
+
+            last_time_stars = get_active_stars(task_window)
             pause.seconds(time_remaining + 10)
 
         elif task_window.find_elements_by_class_name('avatar__reward'):  # Task finished
-            log_prefix = "{:10} -> {:10} {} -> ".format(get_active_mission_file(driver).title(), get_active_task_name(task_window).upper(), '(' + (get_active_stars(task_window) * '★') + ')')
-            task_reward = task_window.find_element_by_class_name('avatar__reward')
+            log_suffix = ""
 
+            task_reward = task_window.find_element_by_class_name('avatar__reward')
             if task_reward.find_elements_by_class_name('failed'):  # Task failed
-                printl(log_prefix + 'Task Failed')
+                log_suffix = 'Task Failed'
             else:  # Task passed
                 reward_text = task_reward.find_element_by_class_name('name').text
 
                 if task_window.find_elements_by_class_name('time'):
                     reward_text += " (%s)" % (task_window.find_element_by_class_name('time').text)
 
-                printl(log_prefix + 'Task Reward ' + reward_text)
+                log_suffix = 'Task Reward ' + reward_text
+
+            log_prefix = "{:10} -> {:10} ({}) -> ".format(
+                get_active_mission_file(driver).title(), 
+                get_active_task_name(task_window).upper(), 
+                get_active_stars(task_window, text=log_suffix) * '★')
+
+            printl(log_prefix + log_suffix)
 
             # Click close button
             # task_reward.find_element_by_css_selector('.button.button--white').click()
@@ -335,6 +355,8 @@ while True:
             ).click()
 
         elif task_window.find_elements_by_css_selector('div.bottom > div.button_container > div.button.button--white'):  # Free state
+            last_time_stars = stars
+
             if can_send:  # and (send_until_energy and energy > send_until_energy):
                 current_stars = stars
 
@@ -433,4 +455,4 @@ while True:
 driver.quit()
 
 # Beep
-winsound.Beep(850, 1)
+winsound.Beep(850, 2)
