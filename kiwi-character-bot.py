@@ -300,7 +300,7 @@ bp = int(driver.find_element_by_css_selector('.points > .value').text)
 
 if not hide_browser:
     not info or print('Saving cookies for headless session.')
-    save_cookies(driver, 'cookie.pkl')
+    save_cookies(driver, 'cookies.pkl')
 
 
 last_time_refreshed = int(datetime.now().timestamp())
