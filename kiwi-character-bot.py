@@ -33,6 +33,8 @@ debug = True
 error = True
 info = True
 
+KIWI_PAGE = 'https://wf.my.com/kiwi'
+
 # VARS
 # Set value in info.json
 mission_file = None
@@ -210,6 +212,12 @@ def get_active_stars(task_window, text=""):
     return current_stars
 
 
+def is_active_task_is_switched_task(driver):
+    global mission_file, switch_to_mission_file, switch_to_task_name
+    task_window = get_task_window(switch_to_mission_file or mission_file, switch_to_task_name, check=True)
+    return bool(task_window.find_elements_by_class_name('timer__text'))
+
+
 def reload_ebp():
     global driver, energy, bp
 
@@ -260,7 +268,7 @@ options.add_argument("--start-maximized")
 
 driver = webdriver.Chrome(chrome_options=options, desired_capabilities=cap)
 
-driver.get('https://wf.my.com/kiwi')
+driver.get(KIWI_PAGE)
 
 if not hide_browser:
     input('''Do these steps
@@ -276,7 +284,7 @@ else:
     while not logged_in:
         try:
             load_cookies(driver, 'cookies.pkl')
-            driver.get('https://wf.my.com/kiwi')
+            driver.get(KIWI_PAGE)
             WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.CLASS_NAME, 'userinfo'))
             )
@@ -300,6 +308,7 @@ last_time_refreshed = int(datetime.now().timestamp())
 exc_on_streak = False
 exc_count = 0
 exc_refresh_after = 5
+first_loop = True
 last_time_stars = stars
 
 print('Bot Started...')
@@ -315,9 +324,13 @@ while True:
 
         reload_ebp()
 
-        task_window = get_task_window(mission_file, task_name)
+        task_window = get_task_window(mission_file, task_name, not first_loop)
+        first_loop = False
 
-        if task_window.find_elements_by_class_name('timer__text'):  # Task in progress
+        if task_window.find_elements_by_class_name('timer__text') or (task_window.find_elements_by_css_selector('.bottom > .completed__text') and is_active_task_is_switched_task(driver)):  # Task in progress
+            if task_window.find_elements_by_css_selector('.bottom > .completed__text') and is_active_task_is_switched_task(driver):
+                task_window = get_task_window(switch_to_mission_file or mission_file, switch_to_task_name, check=True)
+            
             time_remaining = tr = task_window.find_element_by_class_name('timer__text').text
             if ':' in time_remaining:  # h:m
                 time_remaining = int(tr.split(':')[0]) * 3600 + int(tr.split(':')[1]) * 60
