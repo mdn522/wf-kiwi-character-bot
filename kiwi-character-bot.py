@@ -327,8 +327,9 @@ while True:
         task_window = get_task_window(mission_file, task_name, not first_loop)
         first_loop = False
 
-        if task_window.find_elements_by_class_name('timer__text') or (task_window.find_elements_by_css_selector('.bottom > .completed__text') and is_active_task_is_switched_task(driver)):  # Task in progress
-            if task_window.find_elements_by_css_selector('.bottom > .completed__text') and is_active_task_is_switched_task(driver):
+        is_progress = task_window.find_elements_by_css_selector('.bottom > .completed__text')
+        if task_window.find_elements_by_class_name('timer__text') or (is_progress and is_active_task_is_switched_task(driver)):  # Task in progress
+            if is_progress and is_active_task_is_switched_task(driver):
                 task_window = get_task_window(switch_to_mission_file or mission_file, switch_to_task_name, check=True)
             
             time_remaining = tr = task_window.find_element_by_class_name('timer__text').text
