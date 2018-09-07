@@ -1,7 +1,7 @@
 __author__ = "mdn522"
 __copyright__ = "Copyright 2018"
 __license__ = "GPL"
-__version__ = "1.7.6"
+__version__ = "1.8"
 __maintainer__ = "mdn522"
 __status__ = "beta"
 
@@ -85,7 +85,7 @@ def refresh_kiwi(force=False):
 
     if force or (int(datetime.now().timestamp()) - last_time_refreshed) >= refresh_min_time:
         print('Refreshing K.I.W.I. page')
-        driver.get('http://wf.my.com/kiwi')
+        driver.get(KIWI_PAGE)
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, '.app.user'))
         )
@@ -308,7 +308,6 @@ last_time_refreshed = int(datetime.now().timestamp())
 exc_on_streak = False
 exc_count = 0
 exc_refresh_after = 5
-first_loop = True
 last_time_stars = stars
 
 print('Bot Started...')
@@ -324,14 +323,15 @@ while True:
 
         reload_ebp()
 
-        task_window = get_task_window(mission_file, task_name, not first_loop)
-        first_loop = False
+        task_window = get_task_window(mission_file, task_name)
 
-        is_progress = task_window.find_elements_by_css_selector('.bottom > .completed__text')
-        if task_window.find_elements_by_class_name('timer__text') or (is_progress and is_active_task_is_switched_task(driver)):  # Task in progress
-            if is_progress and is_active_task_is_switched_task(driver):
+        is_character_on_mission = task_window.find_elements_by_css_selector('.bottom > .completed__text')
+        if is_character_on_mission:
+            is_character_on_mission = is_character_on_mission[0].text.lower() == 'character on mission'
+            if is_character_on_mission and is_active_task_is_switched_task(driver):
                 task_window = get_task_window(switch_to_mission_file or mission_file, switch_to_task_name, check=True)
             
+        if task_window.find_elements_by_class_name('timer__text'):  # Task in progress
             time_remaining = tr = task_window.find_element_by_class_name('timer__text').text
             if ':' in time_remaining:  # h:m
                 time_remaining = int(tr.split(':')[0]) * 3600 + int(tr.split(':')[1]) * 60
